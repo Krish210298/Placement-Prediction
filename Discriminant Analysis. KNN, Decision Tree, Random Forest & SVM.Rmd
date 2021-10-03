@@ -1,0 +1,519 @@
+---
+title: "CIA 3"
+author: "2027829 C. Vamsi Krishna"
+date: "9/20/2021"
+output: html_document
+---
+Problem Statement: The company recruits various students from various reputed institutions. The placement cell will be very concerned about their students getting placed in the reputed companies visiting the college for recruitment during the process. These placement details will help the institute further analyze the skills required to provide the students and predict the number of placements in the upcoming academic year based on the placement factor. This also makes the institute stand at the top, and different in the market as the institute is analyzing the placements from the past few years, and based on that, the institute trains the required skill sets, which helps the students get a place in top companies.
+
+```{r}
+Placement_data <- read.csv("C:/Users/cvks2/OneDrive/Desktop/MBA/SUBJECTS/Sem 4/ML-1/Placement_data_full_class.csv",stringsAsFactors = TRUE)
+```
+The data is imported and the above output shows the structure of the data.
+
+```{r}
+View(Placement_data)
+```
+
+```{r}
+list_na <- colnames(Placement_data)[apply(Placement_data, 2, anyNA) ]
+list_na
+Placement_data$salary[which(is.na(Placement_data$salary))] = 0
+```
+The dataset contains missing values in the salary variable. It is clear that the empty column is relating to the student who are not yet placed in any of the company. So I have filled that empty space with the value ZERO.
+
+```{r}
+Placement_data<- Placement_data[,-c(1)]
+```
+Removing the Serial Number column from the dataset as it is not appropriate to consider for the model building. 
+
+```{r}
+library(caTools)
+library(caret)
+library(blorr)
+library(Rcpp)
+```
+
+Importing all the libraries which are used in the model building
+```{r}
+ggplot(Placement_data, aes(Placement_data$ssc_p))+geom_histogram()
+```
+The SSC percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$hsc_p))+geom_histogram()
+```
+The HSC percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$degree_p))+geom_histogram()
+```
+
+The degree percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$mba_p))+geom_histogram()
+```
+The MBA percentage data is almost normally distributed with slight right skew in nature.
+
+
+```{r}
+xtabs(~status+ gender, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$gender, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.2398 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the gender
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$ssc_b, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$ssc_b, correct = TRUE)
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.6898 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the SSC_B.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$hsc_b, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$hsc_b, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.9223 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the hsc_b
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$hsc_s, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$hsc_s, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.5727 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the hsc_s.
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$degree_t, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$degree_t, correct = TRUE) 
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.2266 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the degree_t.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$workex, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$workex, correct = TRUE)
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 9.907e-05 which is less than 0.05 so accept the alternative hypothesis and reject null hypothesis. This means that there is relationship between the status and the work_ex.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$specialisation, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$specialisation, correct = TRUE)
+
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.0004202 which is less than 0.05 so accept the alternative hypothesis and reject null hypothesis. This means that there is relationship between the status and the specialisation.
+```{r}
+t.test(Placement_data$ssc_p ~ Placement_data$status)
+```
+
+H0: There is no significance difference in status with respect to ssc_p
+H1: There is a significance difference in status with respect to ssc_p
+
+The value of the P is 2.2e-16 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to ssc_p with 57.54403 average not placed and 71.72149 to placed on an average.
+```{r}
+t.test(Placement_data$hsc_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to hsc_p
+H1: There is a significance difference in status with respect to hsc_p
+
+The value of the P is 6.777e-13 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to hsc_p with 58.39552 average not placed and 69.92655 to placed on an average.
+
+```{r}
+t.test(Placement_data$degree_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to degree_p
+H1: There is a significance difference in status with respect to degree_p
+
+The value of the P is 4.408e-13 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to degree_p with 61.13418 average not placed and 68.74054 to placed on an average.
+
+```{r}
+t.test(Placement_data$etest_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to etest_p
+H1: There is a significance difference in status with respect to etest_p
+
+The value of the P is 0.04958 which is greater than 0.05. So, we can accept the null hypothesis and reject the alternative hypothesis. 
+There is a significance difference in status with respect to etest_p with 69.58791 average not placed and 73.23804 to placed on an average.
+
+```{r}
+t.test(Placement_data$mba_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to mba_p
+H1: There is a significance difference in status with respect to mba_p
+
+The value of the P is 0.2567 which is greater than 0.05. So, we can accept the null hypothesis and reject the alternative hypothesis. 
+There is a significance difference in status with respect to mba_p with 61.61284 average not placed and 62.57939 to placed on an average.
+
+```{r}
+t.test(Placement_data$salary ~ Placement_data$status)
+```
+
+H0: There is no significance difference in status with respect to salary
+H1: There is a significance difference in status with respect to salary
+
+The value of the P is 2.2e-16 which is greater than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to salary with 0 average not placed and 288655.4 to placed on an average.
+
+```{r}
+set.seed(100) 
+split1<- sample.split(Placement_data$status, SplitRatio = 0.7)
+summary(split1)
+datatrain1<- subset(Placement_data, split1==TRUE)
+datatest1<- subset(Placement_data, split1==FALSE)
+```
+Here I have divided the total data set in to training and testing data using caTools library and sample.split funtion
+
+```{r}
+#---------------------DISCRIMINENT ANALYSIS------------------------
+```
+Discriminant analysis is a versatile statistical method often used to classify observations into two or more groups or categories.
+
+```{r}
+data1<- Placement_data[,c(2,4,7,10,12,13)]
+```
+Here the condition to carry out discriminant analysis is that all independent variables should be scale value and the dependent variable should be categorical variable.
+
+```{r}
+library(MVN)
+
+multivariate1 = mvn(data = data1, subset = "status", mvnTest = "hz")
+multivariate1
+```
+Assumptions of Discriminant Analysis:
+The data should be normally distributed
+
+So here I am checking for normality between the variables using Multivariate Normality test. I have performed Henze-Zirkler test using MVNlibrary. 
+Ho = The independent variables are Normally distributed
+H1 = The independent variables are not Normally distributed
+From the output by Henze-Zirkler test we can interpret p-value for both Not placed and placed are <0.05. So as p-value is less than 0.05 I have rejected null hypothesis and accepting alternate hypothesis i.e the data is not normaly distributed.
+
+```{r}
+library(biotools)
+boxM(data1[,c(1:5)],data1$status)
+```
+Assumption of Discriminant Analysis:
+The data should follow homogeneity of varience across groups.
+So here I am checking Homogeneity of varience across group by using Box M test.
+The Box M test is used to check variance and co-variance for all the independent variables of two groups in dependent variable. 
+Ho = data distributes as homogenious 
+H1 = data distributes is not homogenious
+From the below output as p-value>0.05 we are rejecting alternative hypothesis and accept the null hypothesis. that means the data distribution is homogenious.
+
+```{r}
+library(MASS)
+dreg1<-lda(status~., data = data1)
+dreg1
+```
+Here am estimating the variable which is showing the discrimination with respect to the dependent variable with the help of MASS library. I have performed Discriminant regression and to find out which variables are effecting the output or dependent variable. The Prior probability values are greater than 0.20 which indicates proportion of categories present in the model.
+We can also observe the means distribution of all the independent variables with repestive two categories (Not Affected, Affected) of dependent variable. From the output of Linear discriminant LD1 we can interpret that few variables give positive and negative discriminate with two categories of dependent variable classification. 
+compared to all independent variables SSC percentage has highest discrimination with 0.0864 followed by HSC percentage of 0.476 and degree percentage of 0.0649. The other etest and MBA percentage are negative discrimination of 0.0076 and 0.0967 respectively.
+
+
+```{r}
+library(DiscriMiner)
+dreg2<-linDA(data1[,c(1:5)], data1$status)
+dreg2
+```
+I have build fishers discriminating function using DiscriMiner library
+The functions output below shows the fishers discriminating function indicates how much a specific independent variable is discriminating two categories of Not Affected and Affected of a dependent variable. Higher the value better is the result in discriminating.
+
+Equation:
+Placed = -89.4955 + 0.2735(ssc_p) + 0.2567(hsc_p) + 0.9846(degree_p) + 0.1577 (etest_p) + 0.9823 (mba_p)
+Not Placed = -76.7461 + 0.0878 (ssc_p) + 0.1541(hsc_p) + 0.8450(degree_p) + 0.1742 (etest_p) + 1.1901(mba_p)
+
+The classification shows two categories of Not Affected and Affected with independent variables.The confusion Matrix shows the division of all the independent variables with two categories of Not Affected and Affected in dependent variable classification.
+The error rate shows here as 15% which is low in the model built. Below we can also see the scores of all the independent variables in two categories of Not Affected and Affected for dependent variable classification which is shown as top 6 different sets as shown.
+
+
+
+```{r}
+discPower(data1[,c(1:5)], data1$status)
+```
+
+Here I have performed Wilks Lamda test. From the  output I can interpret that SSC and HSC percentage followed by degree pecentage are the high discriminating factors with the dependent variable
+```{r}
+library(candisc)
+reg3<-lm(as.matrix(data1[,c(1:5)])~data1$status)
+regcanno<-candisc(reg3)
+regcanno
+regcanno$structure
+# correlation b/w variable and discriminating function
+# should be high 
+regcanno$coeffs.raw
+regcanno$coeffs.std
+```
+Using Candisc library I have I have performed model fitting
+The Eigen Value is  0.99865 Here as the Eigen value is almost near to 1 this indicates that the model is good.The Canonical R Square value indicates that 49% of discrimination because of this model between the two categories of Not placed and placed of dependent variable Classification
+The Output of Can1, indicates the raw Canonical discriminent analysis of the variables present in the dataset. The standardised Can1, indicates the standardized Canonical discriminant analysis for the variables present in the dataset with respective of independent variables on dependent variable categories of Not placed, placed.
+
+```{r}
+#---------------------------DECISION TREE------------------------
+```
+
+```{r}
+library(rpart)
+library(tree)
+library(partykit)
+library(rpart.plot)
+```
+Importing all the libraries which are used in the model building
+```{r}
+data2<- Placement_data[,-c(14)]
+```
+
+Removed the serial number and salary column which are nor appropriate for my model building
+```{r}
+library(caret)
+set.seed(100)
+split1<- createDataPartition(data2$status,
+                             times = 1,
+                             p=0.70, list = FALSE,
+                             groups = min(5,length(data2$status)))
+datatrain<-data2[split1,]
+datatest<- data2[-split1,]
+# group tells to consider the atleast the 5 observations to each specialization
+```
+Here I have divided the total data set in to training and testing data using caret library and createDataPartition funtion
+
+```{r}
+dt3<- rpart(status~ssc_p+ssc_b+hsc_p+
+              +mba_p+etest_p+workex,
+            minsplit=5, minbucket=10,
+            maxdepth=10, method="class", data = datatrain,
+            parms = list(split= "gini"), cp=0.01)
+```
+
+The decision tree model is training with the train data set by using rpart method. Here I have selected the minsplit value as 50, minbucket value as 10 and maxdepth value as 6. I am applying gini index method for splitting, and complexity parameter is specified as 1% 
+```{r}
+rpart.plot(dt3)
+```
+The model output is showing in the form of tree. This expains that from overall variables the model is able to predict the output with the help of SSC and HSC percentages. So according to this model we can say that the candidates who scored more than 64% are placed and those who scored less than 64% are further considered by their HSC percentage. If the candidate scores the greater than 60% are going to get placed in the company and those who scored less than 60 are not getting placed in any company.
+Though I have consider variables which are effecting the dependent variable which was tested using T-test and chi-square test the plot output of the decision tree is considering only SSC and HSC percentage variable because of its highest influence on the dependent variable. 
+```{r}
+dt3$cptable
+
+dt3$variable.importance
+```
+The output of complexity parameter shows the minimum improvement in the model needed at each node as here it has only 3 nodes and improvement for each node is shown
+The output of variable importance specify the importance of each variable in effecting the output of decision tree building here in this case SSC percentage has highest importance followed by HSC. If we look into the HSC and Degree percentage more or less both are having equal importance. But the rest of the variables are having least importance. So this is the reason behind the tree diagram where only SSC and HSC percentage variables are considered.
+
+```{r}
+dt_pred<- predict(dt3, datatest, type = "class")
+```
+These are the predicted values of the test data.
+
+```{r}
+confusionMatrix(datatest$status, dt_pred)
+
+```
+
+The confusion matrix represents the model functioning. From the output of Confusion Matrix we can say that.
+The Accuracy a decision tree of obtaining in the specified confidence interval is 81%. P value observed is less than 0.05 leading to rejection of null hypothesis saying that the model is significant.We have high sensitivity of 90% and high specificity of 79% in the created model.
+
+```{r}
+#------------------------RANDOM FOREST--------------------------
+```
+
+```{r}
+dt4<-train(status~ssc_p+ssc_b+hsc_p+
+              +mba_p+etest_p+workex,
+           data = datatrain, method= "rf",
+           minsplit=5, minbucket= 5, maxdepth= 5,
+           trControl= trainControl(method = "cv"),
+           savePredicts= TRUE)
+dt4
+```
+
+Here I have performed Random Forest algorithm on my placement data to find the relationship between the two categories of dependent variable.By keeping dependent as class (Categorical variable) and all other variables as independent variables. The output represents various iterations based on the minsplit, minbucket and maxdepth values. The accuracy is high 84.7% at fourth iteration with high kappa value.
+
+# Here below we are loading requierd library for and building a cross validation 
+```{r}
+varImp(dt4)
+# This gives coefficient names
+dt4$coefnames
+```
+This explains us about the important variables which are impacting the dependent variable along with its magnitude. By this also we can able to understand the variables which has the order of impact on the dependent variables. SSC followed by HSC percentage showing more impact compared to other followed by MBA, Etest percentage and work experience.
+
+
+```{r}
+# Cp should be low for more accuracy
+plot(dt4$finalModel)
+```
+The given plot shows the relationship between trees and the errors
+
+
+```{r}
+predict1<-predict(dt4, datatest)
+confusionMatrix(predict1, datatest$status)
+```
+
+From the confusion matrix we can see that the Accuracy of the model is 84.3%. The confidence interval is also shown as between 0.73 to 0.9. The P-value is less than 0.05 saying that it is significant 
+It is observed that the model has Sensitivity of 75% and specificity 88% showing the model is appropriate.
+```{r}
+#-------------------------KNN-----------------------------
+```
+
+```{r}
+library(caret)
+
+fitcontrol<-trainControl(method = "cv", number =10)
+
+```
+Here I am loading caret library and building a cross-validation 
+cv number = 10 means the cross validation is done for 10 values of K
+```{r}
+
+knnmodel<-train(status~.,
+                data = datatrain, 
+                method= "knn", 
+                trControl= fitcontrol, 
+                preProcess= c("center", "scale"), 
+                tuneLength= 20)
+
+knnmodel
+
+```
+From the output we can see that there are 20 k values are created and in each K value we can observe the Accuracy and Kappa values shown. We can also observe that as the k-value changes Accuracy and Kappa value also changes. 
+However the best model is obtained at k=13 where we will get High Accuracy and High Kappa value
+```{r}
+
+plot(knnmodel)
+
+```
+
+The plot represents the graphical representation of the previous output. 
+
+```{r}
+predict1<- predict(knnmodel, datatest)
+confusionMatrix(predict1, datatest$status)
+```
+The confusion matrix interpret that the Accuracy of the model is 79.6%. The confidence interval is also shown as between 0.6777 to 0.8872. The P-value is less than 0.05 saying that the model is significant. We can see that it has  Sensitivity of 50% and  specificity 93%.
+
+```{r}
+#-------------------------SVM------------------------------
+```
+
+```{r}
+
+library(caret)
+library(kernlab)
+control1=trainControl(method = "cv", number = 10)
+
+svmm1<-train(status~., 
+             data = datatrain,
+             trcontrol=control1, 
+             method="svmLinear",
+             preProcess= c("scale"))
+svmm1
+summary(svmm1)
+```
+
+I have performed Support vector Machine test by considering all the variables with dependent variable by considering kernel as Linear. I have trained the model with the train data.From the  output explains that model has Accuracy (86%) with  Kappa value (68%). This indicates that the model is very good model
+```{r}
+predict1 = predict(svmm1, datatest)
+head(predict1)
+confusionMatrix(predict1, datatest$status)
+```
+After training the model with train data I have performed the prediction function using the test data set and to check its accuracy I have build a confusion matrix for the actual and predicted output
+From the output I can see that the built model is 85.9% Accurate, it lies in the confidence interval of 0.7498-0.9336.The model also has  kappa value of 67.7% along with sensitivity of 80% and specificity of 88.6%. By this we can say that the model which was build using Linear Classifier has high Accuracy in classifying saying that the model is very good model.
+```{r}
+
+library(caret)
+
+control1=trainControl(method = "cv", number = 10)
+
+svmm2<-train(status~., 
+             data = datatrain,
+             trcontrol=control1, 
+             method="svmPoly",
+             preProcess= c("scale"))
+svmm2
+summary(svmm2)
+
+
+
+```
+I have performed Support vector Machine test by considering all the variables with dependent variable by considering kernel as Polynomial I have trained the model with the train data. From the below output we can see that the model has  Accuracy (87.5%) with  Kappa value (70%), where degree = 1, scale = 0.1 and C = 0.5 This indicates that the model better than the model which was build using the Polynomial kernel
+
+```{r}
+
+predict2 = predict(svmm2, datatest)
+head(predict2)
+confusionMatrix(predict2, datatest$status)
+
+
+```
+After training the model with train data I have performed the prediction function using the test data set and to check its accuracy I have build a confusion matrix for the actual and predicted output
+From the output I can see that the built model is 85.9% Accurate, it lies in the confidence interval of 0.7498-0.9336.The model also has  kappa value of 65.88% along with sensitivity of 70% and specificity of 93.18%.
+
+
+```{r}
+
+library(caret)
+
+control1=trainControl(method = "cv", number = 10)
+
+svmm3<-train(status~., 
+             data = datatrain,
+             trcontrol=control1, 
+             method="svmRadial",
+             preProcess= c("scale"))
+svmm3
+summary(svmm3)
+
+
+
+```
+I have performed Support vector Machine test by considering all the variables with dependent variable by considering kernel as Radial. I have trained the model with the train data. The output explains that the model has  Accuracy (86.6%) with  Kappa value (65.9%), where , sigma = 0.05 and C =1. This indicates that the model better than the model which was build using the radial kernel
+
+```{r}
+
+predict3 = predict(svmm3, datatest)
+head(predict3)
+confusionMatrix(predict3, datatest$status)
+
+
+```
+
+After training the model with train data I have performed the prediction function using the test data set and to check its accuracy I have build a confusion matrix for the actual and predicted output
+From the output I can see that the built model is 84.38% Accurate, it lies in the confidence interval of 0.7314-0.9224.The model also has  kappa value of 61.54% along with sensitivity of 65% and specificity of 93.18%.
+
+
+Conclusion:
+
+The models has shown a significant relationship between the status of the placement of the students and independent variables like academic background at different stages of the education life of the students. The decision tree predicted 81% of accuracy with 90% of sensitivity and 76% of specificity, random forest model predicted 84.3% accuracy with 75% of sensitivity and 88% of specificity. KNN predicted 76.5% of accuracy with 30% sensitivity and 97% of specificity. The Support Vector Machine especially with the linear kernel predicted 85.9% accurately with 80% of sensitivity 88% of specificity. On whole the Support Vector Machine has highest accuracy value in predicting the output with optimal percentage of sensitivity and specificity. Finally I can conclude that the Support Vector Machine algorithm is the final model which can be further used to deploy the model.

@@ -1,0 +1,348 @@
+---
+title: "CIA 2"
+author: "2027829 C. Vamsi Krishna"
+date: "8/15/2021"
+output: html_document
+---
+Problem Statement: The company recruites the various students from various reputed institutions. During the process the placement cell will be very much concern about their students getting placed in the reputed companies which are visiting to the college for recruitement. These placement details will help the institute for further analysis of the skills required to provide the students and also to predict the number of placements in the upcoming acedamic year based on the factor effecting the placement. This also make the institute to stand at top and different in the market as the institute is analyzing the placements from the past few year and based on that the institute train the required skill sets which helps the students to get place in top companies. 
+```{r}
+Placement_data <- read.csv("C:/Users/cvks2/OneDrive/Desktop/SUBJECTS/Sem 4/ML-1/Placement_data_full_class.csv",stringsAsFactors = TRUE)
+str(Placement_data)
+```
+The data is imported and the above output shows the structure of the data.
+
+```{r}
+list_na <- colnames(Placement_data)[apply(Placement_data, 2, anyNA) ]
+list_na
+Placement_data$salary[which(is.na(Placement_data$salary))] = 0
+```
+The dataset contains missing values in the salary variable. It is clear that the empty column is relating to the student who are not yet placed in any of the company. So I have filled that empty space with the value ZERO.
+
+```{r}
+Placement_data<- Placement_data[,-c(1)]
+```
+Removing the Serial Number column from the dataset as it is not appropriate to consider for the model building. 
+
+```{r}
+library(caTools)
+library(caret)
+library(blorr)
+library(Rcpp)
+```
+
+Importing all the libraries which are used in the model building
+```{r}
+ggplot(Placement_data, aes(Placement_data$ssc_p))+geom_histogram()
+```
+The SSC percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$hsc_p))+geom_histogram()
+```
+The HSC percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$degree_p))+geom_histogram()
+```
+
+The degree percentage data is almost normally distributed.
+
+```{r}
+ggplot(Placement_data, aes(Placement_data$mba_p))+geom_histogram()
+```
+The MBA percentage data is almost normally distributed with slight right skew in nature.
+
+
+```{r}
+xtabs(~status+ gender, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$gender, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.2398 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the gender
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$ssc_b, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$ssc_b, correct = TRUE)
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.6898 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the SSC_B.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$hsc_b, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$hsc_b, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.9223 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the hsc_b
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$hsc_s, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$hsc_s, correct = TRUE)
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.5727 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the hsc_s.
+
+```{r}
+xtabs(~Placement_data$status+ Placement_data$degree_t, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$degree_t, correct = TRUE) 
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.2266 which is greater than 0.05 so reject the alternative hypothesis and accept null hypothesis. This means that there is no relationship between the status and the degree_t.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$workex, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$workex, correct = TRUE)
+```
+
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 9.907e-05 which is less than 0.05 so accept the alternative hypothesis and reject null hypothesis. This means that there is relationship between the status and the work_ex.
+```{r}
+xtabs(~Placement_data$status+ Placement_data$specialisation, data = Placement_data )
+chisq.test(Placement_data$status, Placement_data$specialisation, correct = TRUE)
+
+```
+Chi-Square:
+
+Null Hypothesis:  No relationship exists on the categorical variables in the population
+Alternative Hypothesis: Relationship exists on the categorical variables in the population 
+
+The P-Value is 0.0004202 which is less than 0.05 so accept the alternative hypothesis and reject null hypothesis. This means that there is relationship between the status and the specialisation.
+```{r}
+t.test(Placement_data$ssc_p ~ Placement_data$status)
+```
+
+H0: There is no significance difference in status with respect to ssc_p
+H1: There is a significance difference in status with respect to ssc_p
+
+The value of the P is 2.2e-16 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to ssc_p with 57.54403 average not placed and 71.72149 to placed on an average.
+```{r}
+t.test(Placement_data$hsc_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to hsc_p
+H1: There is a significance difference in status with respect to hsc_p
+
+The value of the P is 6.777e-13 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to hsc_p with 58.39552 average not placed and 69.92655 to placed on an average.
+
+```{r}
+t.test(Placement_data$degree_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to degree_p
+H1: There is a significance difference in status with respect to degree_p
+
+The value of the P is 4.408e-13 which is less than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to degree_p with 61.13418 average not placed and 68.74054 to placed on an average.
+
+```{r}
+t.test(Placement_data$etest_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to etest_p
+H1: There is a significance difference in status with respect to etest_p
+
+The value of the P is 0.04958 which is greater than 0.05. So, we can accept the null hypothesis and reject the alternative hypothesis. 
+There is a significance difference in status with respect to etest_p with 69.58791 average not placed and 73.23804 to placed on an average.
+
+```{r}
+t.test(Placement_data$mba_p ~ Placement_data$status)
+```
+H0: There is no significance difference in status with respect to mba_p
+H1: There is a significance difference in status with respect to mba_p
+
+The value of the P is 0.2567 which is greater than 0.05. So, we can accept the null hypothesis and reject the alternative hypothesis. 
+There is a significance difference in status with respect to mba_p with 61.61284 average not placed and 62.57939 to placed on an average.
+
+```{r}
+t.test(Placement_data$salary ~ Placement_data$status)
+```
+
+H0: There is no significance difference in status with respect to salary
+H1: There is a significance difference in status with respect to salary
+
+The value of the P is 2.2e-16 which is greater than 0.05. So, we can reject the null hypothesis and accept the alternative hypothesis. 
+There is a significance difference in status with respect to salary with 0 average not placed and 288655.4 to placed on an average.
+```{r}
+set.seed(100) 
+split1<- sample.split(Placement_data$status, SplitRatio = 0.7)
+summary(split1)
+datatrain1<- subset(Placement_data, split1==TRUE)
+datatest1<- subset(Placement_data, split1==FALSE)
+```
+Here I have divided the total data set in to training and testing data using caTools library and sample.split funtion
+```{r}
+lreg<-train(status ~ ssc_p+ hsc_p+degree_p+salary+
+               specialisation+ workex+etest_p,
+            method='glm',
+            family='binomial',data = datatrain1)
+```
+
+The logistic regression model has been trained with the train data set which was splited before in the 70:30 ratio.
+```{r}
+summary(lreg)
+```
+The summary of the model represents the below equation.
+
+Status = -3.208e+01+ ssc_p(6.429e-02)+ hsc_p(3.876e-03)+ degree_p(2.689e-02)+ salary(2.360e-04)+ specialisationMkt&HR(7.047e-01)+ workexYes(1.202)+ etest_p(-1.921e-02)
+
+Only the variable which has significant relationship with the status dependent variables are considered for the model.
+
+```{r}
+lreg
+```
+The regression function is based on Dombi's Kappa function. Kappa is used in classification as a measure of agreement between observed and predicted or inferred classes for cases in a testing dataset.
+The kappa value of the model is 1 which is above 0.90 which represents the perfect model.
+Accuracy is a measure for classification,the score represents the model accuracy. As the analyst we need to try the accuracy value as high as possible. He the model has 100% accuracy where we need to cross check the variables which we have considered.
+```{r}
+blr_model_fit_stats(lreg$finalModel)
+```
+Log Likelihood value is a measure of goodness of fit for any model. Higher the value, better is the model. We should remember that Log Likelihood can lie between -Inf to +Inf. We can only compare the Log Likelihood values between multiple models. So, here our model has 0 has its log likelihood value.
+
+R-Square value represents how the dependent variable vary with respect to the independent variables in this case all R-Square values are 1 that means the dependent variable which is status is varying 100% with respect to all its independent variables.
+
+AIC and BIC: Akaike Information Criterion(AIC) and Bayesian Information Criterion (BIC) are 2 methods of scoring and selecting model. The score, as defined above, is minimized, e.g. the model with the lowest AIC and BIC is selected. For our model the value of AIC and BIC is 16 and 40.138 respectively.
+```{r}
+blr_test_hosmer_lemeshow(lreg$finalModel)
+```
+
+Null hypothesis: model is good fit: 
+Alternate hypothesis: model is not good fit:
+
+The Hosmer-Lemeshow test (HL test) is a goodness of fit test for logistic regression, especially for risk prediction models. A goodness of fit test tells you how well your data fits the model. In our case the value is greater than 0.05 which means accept the null hypothesis that means the model is good fit.
+```{r}
+blr_confusion_matrix(lreg$finalModel, cutoff = 0.5)
+```
+A confusion matrix is a technique for summarizing the performance of a classification algorithm. Classification accuracy alone can be misleading if you have an unequal number of observations in each class or if you have more than two classes in your dataset.
+The accuracy, kappa, sensitivity, specificity values are equal to 1 which explains that the model is 100% correct.
+
+```{r}
+predict1<-predict(lreg, datatest1)
+predict1
+```
+
+These are the predicted classifiers for the logistic regression model
+
+```{r}
+confusionMatrix(predict1, datatest1$status)
+```
+
+Here the confusion matrix with respect to the predicted values and the actual values from the test data. All the parameters like acuracy, kappa, sensitivity and specificity values are 1 that means 100% the model is fit.
+```{r}
+gaintable<-blr_gains_table(lreg$finalModel)
+gaintable
+```
+This represents the final model sensitivity which is calculated by considering resampling method.
+
+```{r}
+blr_roc_curve(gaintable)
+```
+
+ROC curve (Receiver Operating Characteristic curve) is used to specify model fit indices.We can see that there is much area in triangle formed saying that the model is very good model that means independent variables has good effect in predicting the dependent variable classification.
+
+```{r}
+reg_f3<-blr_step_aic_forward(lreg$finalModel, details = TRUE)
+plot(reg_f3)
+```
+This represents the forward step AIC which build by considering each and every variable and train the model the resampling the model will stop where the model gets least AIC values. The graph represents the variables which are significant to the output.
+
+Here in the graph we have obsvered that we got only salary variable which means that the output is based on only the salary independent variable. In practical the salary will comes once the candidate get placed in the company. But here the case is totally different the model is trained in such a way that based on the salary the status of the candidate is predicting which is conceptually wrong. So, due to this I am building another model by removing the salary variable.
+
+```{r}
+lreg2<-train(status ~ ssc_p+ hsc_p+degree_p+
+               specialisation+ workex+etest_p ,
+            method='glm',
+            family='binomial',data = datatrain1)
+```
+
+```{r}
+summary(lreg2)
+```
+
+The summary of the model represents the below equation.
+
+Status = -17.52582+ ssc_p(0.13962)+ hsc_p(0.07949)+ degree_p(0.06321)+ specialisationMkt&HR(0.63636)+ workexYes(1.27827)+ etest_p(-0.01748)
+
+Only the variable which has significant relationship with the status dependent variables are considered for the model.
+
+```{r}
+lreg2
+```
+
+The regression function is based on Dombi's Kappa function. Kappa is used in classification as a measure of agreement between observed and predicted or inferred classes for cases in a testing dataset.
+The kappa value of the model is 0.6217647 which is ranging between 0.60 and 0.80 which represents the moderate model. 62% of the data are reliable.
+Accuracy is a measure for classification,the score represents the model accuracy. As the analyst we need to try the accuracy value as high as possible. The model has 84.5% accuracy.
+
+```{r}
+blr_model_fit_stats(lreg2$finalModel)
+```
+Log Likelihood value is a measure of goodness of fit for any model. Higher the value, better is the model. We should remember that Log Likelihood can lie between -Inf to +Inf. We can only compare the Log Likelihood values between multiple models. So, here our model has -47.806 has its log likelihood value.
+
+R-Square value represents how the dependent variable vary with respect to the independent variables in this case all R-Square values are ranging between 0.4 to 0.7 that means the dependent variable which is status is varying 40%-70% with respect to all its independent variables.
+
+AIC and BIC: Akaike Information Criterion(AIC) and Bayesian Information Criterion (BIC) are 2 methods of scoring and selecting model. The score, as defined above, is minimized, e.g. the model with the lowest AIC and BIC is selected. For our model the value of AIC and BIC is 109.612 and 130.733 respectively.
+
+```{r}
+blr_test_hosmer_lemeshow(lreg2$finalModel)
+```
+
+Null hypothesis: model is good fit: 
+Alternate hypothesis: model is not good fit:
+
+The Hosmer-Lemeshow test (HL test) is a goodness of fit test for logistic regression, especially for risk prediction models. A goodness of fit test tells you how well your data fits the model. In our case the value is greater than 0.05 which means accept the null hypothesis that means the model is good fit.
+```{r}
+blr_confusion_matrix(lreg2$finalModel, cutoff = 0.5)
+```
+
+A confusion matrix is a technique for summarizing the performance of a classification algorithm. Classification accuracy alone can be misleading if you have an unequal number of observations in each class or if you have more than two classes in your dataset.
+The accuracy of the model is 85%, kappa values is 0.6479, sensitivity values is 92% that means the 92% are the true positive, specificity values is 70% that means 70% are true negative.
+```{r}
+predict2<-predict(lreg2, datatest1)
+predict2
+```
+
+
+```{r}
+confusionMatrix(predict2, datatest1$status)
+```
+
+Here the confusion matrix with respect to the predicted values and the actual values from the test data. All the parameters like accuracy is 82.8%, kappa is .687, sensitivity is 75% and specificity value is 86.3%.
+```{r}
+gaintable<-blr_gains_table(lreg2$finalModel)
+gaintable
+```
+
+
+```{r}
+blr_roc_curve(gaintable)
+```
+
+
+```{r}
+reg_f2<-blr_step_aic_forward(lreg2$finalModel, details = TRUE)
+plot(reg_f2)
+```
+
+Finally the model gets less AIC in the model where we consider the SSC_P, HSC_P, Degree_P and workxYes variables in the model. That means these independent variables can be used to predict whether the candidate get place in the company or get rejected by the company.
+
